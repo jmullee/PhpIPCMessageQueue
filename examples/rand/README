@@ -1,0 +1,50 @@
+
+#####################################
+  PhpIPCMessageQueue Example: 'rand'
+#####################################
+
+What Is It
+
+	These files comprise an example usage of the 'ipc_message_queue.php' php class.
+
+	The example includes php scripts that
+		- define a ipc_message_queue subclass
+		- start a queue-listing process
+		- send messages to the queue
+		- remove the IPC queue
+
+	This example consists of:
+
+		README
+			This file
+
+		example_q_listener.php
+			PHP file defining Subclass of base ipc_message_queue class
+		example_q_listener_daemon.php
+			PHP file the starts a Q listener daemon
+		example_q_listener_del_queue.php
+			PHP file that deletes a Q
+		example_q_listener_msgsource.php
+			PHP file that sends a message
+
+Installation
+
+	The PHP files also includes files from package PhpUnixDaemon, see here:
+
+		http://github.com/jmullee/PhpUnixDaemon
+
+Running
+
+	Enqueue a test message (a random number):
+
+		> php -f examples/rand/example_q_listener_msgsource.php
+
+	run listener daemon
+
+		> sudo php -f examples/rand/example_q_listener_daemon.php
+		( CTRL-C to exit )
+
+	Destroy the Queue:
+
+		> sudo php -f examples/rand/example_q_listener_del_queue.php
+

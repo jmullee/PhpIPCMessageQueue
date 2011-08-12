@@ -1,0 +1,86 @@
+
+#####################################
+  PhpIPCMessageQueue
+#####################################
+
+What Is It
+
+	These files define a php class 'ipc_message_queue.php'.
+	It is intended to be used a lightweight inter-process Message Queue communication mechanism.
+
+	The class wraps POSIX IPC Queue functionality, which is managed by the Operating System.
+	IPC Queues are usually managed with a small amount of memory, and lack a method to persist
+	message contents between reboots.
+
+	This example consists of:
+
+		README
+			This file
+		ipc_message_queue.php
+			PHP class that wraps POSIX IPC-Q functions
+		errno.php
+			defines system error-numbers which might be received by IPC functions
+		examples/rand
+			command-line example, sends and receives random numbers
+		examples/sys
+			example started with a sysv-init script
+
+Use
+
+	Subclass ipc_message_queue, redefining as needed:
+		- the constructor (which sets the message-queue key)
+		- the message-received function (which processes received messages)
+
+	---8<---
+	<?php
+	require_once('ipc_message_queue.php');
+
+	// a number of queues can exist simultaneously in the system; each has it's own Unique Key (an integer).
+	$queue_key = 123;
+
+	// messages are sent with a type-identifier (integer). This value, used in the constructor,
+	// defines which types to listen for. Alternately, set to MSG_TYPE_ANY to receive all msg types
+	$msg_type  = 99;
+
+	class MyListener extends ipc_message_queue {
+		public function __construct() {
+			parent::__construct($queue_key, $msg_type, 33, 33, '0666');
+			}
+		protected function msg_received($type,$msg) {
+			print($msg);
+			}
+		}
+	// instantiate an instance, which will create the Q if it does not already exist
+	$q = new MyListener();
+
+	// kill Queue (deletes messages, any listening server will stop)
+	$q->deletequeue();
+
+	// client; send message
+	$q->send_message($options['message']);
+
+	// run in server mode
+	become_daemon('/var/run/myq.pid',33,33);
+	$q->process_messages();
+	--->8---
+
+
+Security
+
+	If, when trying to create an IPC Queue as a non-root user, there is a message about CAP_IPC_OWNER, then you can
+	add this capability to the PHP binary file like this (setcap is in package libcap2-bin, see https://sites.google.com/site/fullycapable/):
+
+		> sudo /sbin/setcap cap_ipc_owner=ep /usr/bin/php5
+
+	check capabilities:
+
+		> /sbin/getcap /usr/bin/php5
+
+		/usr/bin/php5 = cap_ipc_owner+ep
+
+	Capabilities discussions, critiques, ...
+		http://en.wikipedia.org/wiki/Capability-based_security#POSIX_Capabilities
+		http://www.linuxjournal.com/article/5737
+		http://lwn.net/Articles/212962/
+		http://www.gentoo.org/proj/en/hardened/capabilities.xml
+

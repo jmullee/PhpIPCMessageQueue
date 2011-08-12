@@ -1,0 +1,55 @@
+
+#####################################
+  PhpIPCMessageQueue Example: 'sys'
+#####################################
+
+What Is It
+
+	These files comprise an example usage of the 'ipc_message_queue.php' php class.
+
+	The example includes a sysv-init script that starts a queue listener,
+	and commands to send messages to the queue, and kill the queue.
+
+	This example consists of:
+
+		README
+			This file
+
+		sysvinit_msgq
+			a unix SYSV-Init script, to start the queue-listener automatically on system start
+
+		sys_q_listener.php
+			PHP file defining Subclass of base ipc_message_queue class
+
+		sys_msg_q_listener.php
+			PHP file which interprets command-line options and performs actions accordingly
+
+Installation
+
+	copy file to /etc/init.d/ :
+
+		> cp sysvinit_msgq /etc/init.d/
+
+	make that file executable:
+
+		> sudo chmod +x /etc/init.d/sysvinit_msgq
+
+	The PHP files also includes files from package PhpUnixDaemon, see here:
+
+		http://github.com/jmullee/PhpUnixDaemon
+	
+
+Running
+
+	start listener daemon
+
+		> sudo /etc/init.d/sysvinit_msgq start
+
+	then send a test message:
+
+		> php -f examples/sys/sys_msg_q_listener.php -- --message 'a test message'
+
+	or send 10 messages with a shell loop:
+
+		> N=0; typeset -i N ; while [ $N -le 9 ] ; do php -f examples/sys/sys_msg_q_listener.php -- --message $N ; let N=$N+1 ; done
+

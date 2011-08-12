@@ -1,0 +1,141 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          sys_msg_q_listener
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: listens to ipcs msg Q
+# Description:       Example System Message Q Listener
+### END INIT INFO
+
+#==
+# Copyright 2011 John Mullee
+# 
+# This file is part of PhpIPCMessageQueue.
+# 
+# PhpIPCMessageQueue is free software: you can redistribute it and/or modify it under the terms of the
+# GNU General Public License as published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+# 
+# PhpIPCMessageQueue is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along with PhpIPCMessageQueue.
+# If not, see http://www.gnu.org/licenses/.
+#==
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="listens to ipcs msg Q"
+NAME=sys_msg_q_listener
+export PHP_PIDFILE="/var/run/${NAME}.pid"
+SCRIPTNAME=/etc/init.d/sysvinit_msgq
+
+PHPPATH=/home/jmullee/projects/PhpIPCMessageQueue
+PHPFILE=examples/sys/sys_msg_q_listener.php
+
+# Exit if the package is not installed
+[ -x "/usr/bin/php5" ]  || { echo "php5 not executable"; exit 1 ; }
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+# # # # start
+
+do_start() {
+    if [ -e $PHP_PIDFILE ]; then
+        if /bin/ps -p $(/bin/cat $PHP_PIDFILE) >/dev/null; then
+            echo "Error: $NAME seems to be already running!"
+            return 1
+        else
+            /bin/rm -f $PHP_PIDFILE
+        fi
+    fi
+    ( cd $PHPPATH && /usr/bin/php5 -f ${PHPFILE} -- -s ; )
+    }
+
+# # # # Remove Queue
+
+do_killqueue() {
+    ( cd $PHPPATH && /usr/bin/php5 -f ${PHPFILE} -- -k ; )
+    }
+
+# # # # stop
+
+do_stop() {
+    if [ -e $PHP_PIDFILE ]; then
+        PID=$(/bin/cat $PHP_PIDFILE)
+        [ "_$PID" = "_" ] && {
+            echo "Warning: $NAME was not running."
+            echo "Cleaning PID file"
+            /bin/rm -f $PHP_PIDFILE
+            return 1
+            }
+        if /bin/ps -p $PID >/dev/null; then
+            /bin/kill -TERM $PID
+            /bin/rm -f $PHP_PIDFILE
+            return 0
+        else
+            echo "Warning: $NAME was not running."
+            echo "Cleaning PID file"
+            /bin/rm -f $PHP_PIDFILE
+            return 1
+        fi
+    else
+        echo "Warning: $NAME was not running"
+        return 1
+    fi
+    }
+
+# # # # switch
+
+case "$1" in
+    start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+            2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+            2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    killqueue)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Killing Queue"
+	do_killqueue
+        case "$?" in
+            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+            2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    restart|force-reload)
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        do_stop
+        case "$?" in
+            0|1)
+                do_start
+                case "$?" in
+                    0) log_end_msg 0 ;;
+                    1) log_end_msg 1 ;; # Old process is still running
+                    *) log_end_msg 1 ;; # Failed to start
+                esac
+                ;;
+            *) log_end_msg 1 ;;
+        esac
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+        exit 3
+        ;;
+esac
+
